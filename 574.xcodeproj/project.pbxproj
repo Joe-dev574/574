@@ -34,22 +34,9 @@
 		371C0D682FA79883002C9A6D /* StoreKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = StoreKit.framework; path = System/Library/Frameworks/StoreKit.framework; sourceTree = SDKROOT; };
 /* End PBXFileReference section */
 
-/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		371C0D6B2FA79A9C002C9A6D /* Exceptions for "574" folder in "574" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				"-74-Info.plist",
-			);
-			target = 371C0D3B2FA796E8002C9A6D /* 574 */;
-		};
-/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
-
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		371C0D3E2FA796E8002C9A6D /* 574 */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-				371C0D6B2FA79A9C002C9A6D /* Exceptions for "574" folder in "574" target */,
-			);
 			path = 574;
 			sourceTree = "<group>";
 		};
