@@ -5,34 +5,21 @@
 //  Created by Joseph DeWeese on 5/3/26.
 //
 
-
 import SwiftUI
 
 /// A compact pill-shaped badge that renders a single ``Tag`` name.
-///
-/// Use this view wherever a tag needs to be represented inline —
-/// for example, inside ``NoteCardView`` or the tag strip in ``NoteDetailView``.
-///
-/// ```swift
-/// TagPill(tag: myTag)
-/// ```
 struct TagPill: View {
-
-    // MARK: - Properties
-
-    /// The tag whose name this pill displays.
     let tag: Tag
-
-    // MARK: - Body
+    @Environment(ThemeManager.self) private var themeManager
 
     var body: some View {
         Text(tag.name)
             .font(.caption2)
             .fontWeight(.medium)
-            .foregroundStyle(.secondary)
+            .foregroundStyle(themeManager.current.palette.primaryText)
             .padding(.horizontal, 8)
             .padding(.vertical, 3)
-            .background(Color.orange.opacity(0.8))
+            .background(themeManager.current.palette.accent.opacity(0.22))
             .clipShape(RoundedRectangle(cornerRadius: 12))
             .accessibilityLabel("Tag: \(tag.name)")
     }
@@ -44,4 +31,3 @@ struct TagPill: View {
     TagPill(tag: Tag(name: "Swift"))
         .padding()
 }
-

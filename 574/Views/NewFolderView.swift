@@ -8,58 +8,125 @@
 import SwiftUI
 import SwiftData
 
-/// A modal sheet for creating a new ``Folder`` with a name and optional accent colour.
-///
-/// Presented from ``FolderView`` via the toolbar `+` button.
-/// Mirrors the layout of ``EditFolderView`` for visual consistency.
 struct NewFolderView: View {
 
     // MARK: - Environment
 
-    @Environment(\.dismiss) private var dismiss
+    @Environment(\.dismiss)      private var dismiss
     @Environment(\.modelContext) private var modelContext
+    @Environment(ThemeManager.self) private var themeManager
 
     // MARK: - State
 
     @State private var name: String = ""
     @State private var colorName: String? = nil
+    @FocusState private var nameFocused: Bool
+
+    // MARK: - Computed
+
+    private var resolvedColor: Color {
+        switch colorName {
+        case "blue":   return .blue
+        case "red":    return .red
+        case "green":  return .green
+        case "orange": return .orange
+        case "purple": return .purple
+        case "yellow": return .yellow
+        default:       return .accentColor
+        }
+    }
+
+    private var isValid: Bool {
+        !name.trimmingCharacters(in: .whitespaces).isEmpty
+    }
 
     // MARK: - Body
 
     var body: some View {
-        NavigationStack {
-            Form {
-                Section("Name") {
-                    TextField("Folder name", text: $name)
-                        .textFieldStyle(.roundedBorder)
-                        .accessibilityLabel("Folder name")
-                }
+        VStack(spacing: 0) {
 
-                Section("Accent Colour") {
-                    FolderColorPicker(colorName: $colorName)
-                        .accessibilityLabel("Choose folder colour")
-                }
-            }
-            .navigationTitle("New Folder")
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
-                        .keyboardShortcut(.cancelAction)
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Add") {
-                        let trimmed = name.trimmingCharacters(in: .whitespaces)
-                        let folder = Folder(name: trimmed, colorName: colorName)
-                        modelContext.insert(folder)
-                        try? modelContext.save()
-                        dismiss()
-                    }
-                    .disabled(name.trimmingCharacters(in: .whitespaces).isEmpty)
+            // Header bar
+            HStack {
+                Button("Cancel") { dismiss() }
+                    .keyboardShortcut(.cancelAction)
+                    .foregroundStyle(.secondary)
+                Spacer()
+                Text("New Folder")
+                    .font(.headline)
+                Spacer()
+                Button("Create") { createFolder() }
+                    .fontWeight(.semibold)
+                    .disabled(!isValid)
                     .keyboardShortcut(.defaultAction)
-                }
             }
+            .padding(.horizontal, 20)
+            .padding(.top, 16)
+            .padding(.bottom, 12)
+
+            Divider().opacity(0.5)
+
+            // Live folder icon preview
+            ZStack {
+                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    .fill(resolvedColor.opacity(0.15))
+                    .frame(width: 84, height: 84)
+                Image(systemName: "folder.fill")
+                    .font(.system(size: 42, weight: .medium))
+                    .foregroundStyle(resolvedColor)
+            }
+            .padding(.top, 28)
+            .padding(.bottom, 28)
+            .animation(.spring(response: 0.3, dampingFraction: 0.7), value: colorName)
+
+            // Name field
+            VStack(alignment: .leading, spacing: 8) {
+                Text("NAME")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal, 20)
+
+                TextField("Folder name…", text: $name)
+                    .textFieldStyle(.plain)
+                    .font(.body)
+                    .focused($nameFocused)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 11)
+                    .background(
+                        RoundedRectangle(cornerRadius: 10, style: .continuous)
+                            .fill(Color.primary.opacity(0.07))
+                    )
+                    .padding(.horizontal, 20)
+                    .onSubmit { if isValid { createFolder() } }
+            }
+
+            // Colour picker
+            VStack(alignment: .leading, spacing: 10) {
+                Text("COLOUR")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal, 20)
+
+                FolderColorPicker(colorName: $colorName)
+                    .padding(.horizontal, 8)
+            }
+            .padding(.top, 22)
+
+            Spacer(minLength: 20)
         }
-        .frame(minWidth: 340, minHeight: 260)
+        .background(themeManager.current.palette.listBackground.ignoresSafeArea())
+        .onAppear { nameFocused = true }
+        .frame(minWidth: 340, minHeight: 340)
+    }
+
+    // MARK: - Action
+
+    private func createFolder() {
+        let trimmed = name.trimmingCharacters(in: .whitespaces)
+        guard !trimmed.isEmpty else { return }
+        let folder = Folder(name: trimmed, colorName: colorName)
+        modelContext.insert(folder)
+        try? modelContext.save()
+        dismiss()
     }
 }
 
