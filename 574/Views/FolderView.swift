@@ -4,10 +4,6 @@
 //
 //  Created by Joseph DeWeese on 5/3/26.
 //
-//  Sidebar column: Folders, Projects, and Trash.
-//  Folder rows use large rounded-square icons.
-//  Project rows show app-icon-style hero images (ProjectIconView).
-//
 
 import SwiftUI
 import SwiftData
@@ -16,32 +12,55 @@ import SwiftData
 struct FolderView: View {
 
     // MARK: - Environment & Queries
-
     @Environment(\.modelContext)    private var modelContext
     @Environment(ThemeManager.self) private var themeManager
-    @Query(sort: \Folder.createdAt)  private var folders: [Folder]
-    @Query(sort: \Project.createdAt) private var projects: [Project]
+
+    @Query(sort: \Folder.order) private var folders: [Folder]
+    @Query(sort: \Project.order) private var projects: [Project]
     @Query(filter: #Predicate<Note> { $0.deletedAt != nil }) private var trashedNotes: [Note]
 
     // MARK: - Bindings
-
     @Binding var selectedFolder:  Folder?
     @Binding var showTrash:       Bool
     @Binding var selectedProject: Project?
 
     // MARK: - State
-
     @State private var showingNewFolderSheet  = false
     @State private var showingNewProjectSheet = false
     @State private var folderToEdit: Folder?
     @State private var showingThemePicker = false
+    @State private var showingSettings = false
+
+    // Profile hero
+    @State private var profileImage: Image? = Image(systemName: "person.circle.fill")
 
     // MARK: - Body
-
     var body: some View {
         List(selection: $selectedFolder) {
 
-            // MARK: Folders
+            // MARK: - Custom Header: Profile Hero + Gear
+            Section {
+                HStack {
+                    Button {
+                        showingSettings = true
+                    } label: {
+                        profileImage?
+                            .resizable()
+                            .scaledToFill()
+                            .frame(width: 48, height: 48)
+                            .clipShape(Circle())
+                    }
+                    .buttonStyle(.plain)
+
+                    Spacer()
+                }
+                .padding(.horizontal, 8)
+                .padding(.vertical, 12)
+            }
+            .listRowBackground(Color.clear)
+            .listRowInsets(EdgeInsets())
+
+            // MARK: Folders (reorderable)
             Section("Folders") {
                 ForEach(folders) { folder in
                     NavigationLink(value: folder) {
@@ -50,10 +69,32 @@ struct FolderView: View {
                     .accessibilityLabel(folder.name)
                     .contextMenu { folderContextMenu(for: folder) }
                 }
+                .onMove { source, destination in
+                    reorder(items: folders, from: source, to: destination)
+                }
             }
 
-            // MARK: Projects
+            // MARK: Projects — Big Gray Rectangle Card + reorderable rows
             Section("Projects") {
+                Button {
+                    showingNewProjectSheet = true
+                } label: {
+                    HStack {
+                        Image(systemName: "plus.circle.fill")
+                            .font(.title2)
+                            .foregroundStyle(.secondary)
+                        Text("New Project")
+                            .font(.headline)
+                            .foregroundStyle(.primary)
+                        Spacer()
+                    }
+                    .padding()
+                    .background(Color.gray.opacity(0.12))
+                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                }
+                .buttonStyle(.plain)
+                .listRowInsets(EdgeInsets(top: 8, leading: 8, bottom: 8, trailing: 8))
+
                 ForEach(projects) { project in
                     Button {
                         selectedProject = project
@@ -63,22 +104,12 @@ struct FolderView: View {
                         projectRow(project)
                     }
                     .buttonStyle(.plain)
-                    .listRowBackground(
-                        selectedProject?.id == project.id
-                            ? Color.accentColor.opacity(0.18)
-                            : Color.clear
-                    )
+                    .listRowBackground(selectedProject?.id == project.id ? Color.accentColor.opacity(0.18) : Color.clear)
                     .contextMenu { projectContextMenu(for: project) }
                 }
-
-                Button {
-                    showingNewProjectSheet = true
-                } label: {
-                    Label("New Project", systemImage: "plus.circle")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                .onMove { source, destination in
+                    reorder(items: projects, from: source, to: destination)
                 }
-                .buttonStyle(.plain)
             }
 
             // MARK: Trash
@@ -125,22 +156,18 @@ struct FolderView: View {
             ThemePickerView()
                 .environment(themeManager)
         }
+        .sheet(isPresented: $showingSettings) {
+            SettingsView()
+        }
         .onChange(of: selectedFolder) { _, newValue in
-            if newValue != nil {
-                showTrash       = false
-                selectedProject = nil
-            }
+            if newValue != nil { showTrash = false; selectedProject = nil }
         }
         .onChange(of: selectedProject) { _, newValue in
-            if newValue != nil {
-                selectedFolder = nil
-                showTrash      = false
-            }
+            if newValue != nil { selectedFolder = nil; showTrash = false }
         }
     }
 
     // MARK: - Row Views
-
     private func folderRow(_ folder: Folder) -> some View {
         let noteCount = folder.notes.filter { $0.deletedAt == nil }.count
         return HStack(spacing: 12) {
@@ -182,8 +209,6 @@ struct FolderView: View {
         .padding(.vertical, 3)
     }
 
-    // MARK: - Toolbar
-
     @ToolbarContentBuilder
     private var toolbarContent: some ToolbarContent {
         ToolbarItem(placement: .primaryAction) {
@@ -194,18 +219,24 @@ struct FolderView: View {
             .accessibilityLabel("New Folder")
             .keyboardShortcut("n", modifiers: [.command, .shift])
         }
+        
         ToolbarItem(placement: .automatic) {
             Button { showingThemePicker = true } label: {
                 Image(systemName: "paintpalette")
                     .foregroundStyle(themeManager.current.palette.accent)
             }
             .help("Workspace Theme")
-            .accessibilityLabel("Choose workspace theme")
         }
-    }
-
+        // Gear (Settings) — now right next to it
+        ToolbarItem(placement: .automatic) {
+                    Button { showingSettings = true } label: {
+                        Image(systemName: "gear")
+                    }
+                    .help("Settings")
+            }
+        }
+    
     // MARK: - Context Menus
-
     @ViewBuilder
     private func folderContextMenu(for folder: Folder) -> some View {
         if folder.name != "Junk Drawer" {
@@ -221,8 +252,22 @@ struct FolderView: View {
         Button("Delete", role: .destructive) { deleteProject(project) }
     }
 
-    // MARK: - Helpers
+    // MARK: - Reordering Helper
+    private func reorder<T: PersistentModel & Identifiable>(items: [T], from source: IndexSet, to destination: Int) {
+        var reordered = items
+        reordered.move(fromOffsets: source, toOffset: destination)
+        
+        for (index, item) in reordered.enumerated() {
+            if let folder = item as? Folder {
+                folder.order = index
+            } else if let project = item as? Project {
+                project.order = index
+            }
+        }
+        try? modelContext.save()
+    }
 
+    // MARK: - Delete Helpers
     private func deleteFolder(_ folder: Folder) {
         guard folder.name != "Junk Drawer" else { return }
         if selectedFolder?.id == folder.id { selectedFolder = nil }
@@ -238,7 +283,6 @@ struct FolderView: View {
 }
 
 // MARK: - Preview
-
 #Preview {
     FolderView(
         selectedFolder:  .constant(nil),

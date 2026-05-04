@@ -101,7 +101,7 @@ struct NewFolderView: View {
 
             // Colour picker
             VStack(alignment: .leading, spacing: 10) {
-                Text("COLOUR")
+                Text("COLOR")
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(.secondary)
                     .padding(.horizontal, 20)

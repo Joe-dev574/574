@@ -12,32 +12,31 @@
 import SwiftUI
 import SwiftData
 
+
 // MARK: - Schema Versions
 
-/// Version 1 — initial schema (Note has no deletedAt / isPinned / isLocked).
-enum NoteSchemaV1: VersionedSchema {
-    static var versionIdentifier = Schema.Version(1, 0, 0)
-    static var models: [any PersistentModel.Type] {
-        [Note.self, Folder.self, Tag.self, Attachment.self, LinkedReminder.self, LinkedCalendarEvent.self]
-    }
-}
+// MARK: - Schema Versions (simplified for now — only current version)
 
-/// Version 2 — adds Note.deletedAt, Note.isPinned, Note.isLocked.
-/// All three are optional or carry a default value, so a lightweight
-/// migration is sufficient — no custom stage or data transform required.
-enum NoteSchemaV2: VersionedSchema {
-    static var versionIdentifier = Schema.Version(2, 0, 0)
+enum NoteSchemaCurrent: VersionedSchema {
+    static var versionIdentifier = Schema.Version(3, 0, 0)
     static var models: [any PersistentModel.Type] {
-        [Note.self, Folder.self, Tag.self, Attachment.self, LinkedReminder.self, LinkedCalendarEvent.self]
+        [
+            Note.self,
+            Folder.self,
+            Tag.self,
+            Attachment.self,
+            LinkedReminder.self,
+            LinkedCalendarEvent.self,
+            Project.self
+        ]
     }
 }
 
 enum NotesMigrationPlan: SchemaMigrationPlan {
-    static var schemas: [any VersionedSchema.Type] { [NoteSchemaV1.self, NoteSchemaV2.self] }
-    static var stages: [MigrationStage] {
-        [.lightweight(fromVersion: NoteSchemaV1.self, toVersion: NoteSchemaV2.self)]
-    }
+    static var schemas: [any VersionedSchema.Type] { [NoteSchemaCurrent.self] }
+    static var stages: [MigrationStage] { [] }   // No stages = no duplicates
 }
+
 
 @main
 struct _74App: App {
@@ -52,23 +51,27 @@ struct _74App: App {
             Tag.self,
             Attachment.self,
             LinkedReminder.self,
-            LinkedCalendarEvent.self
+            LinkedCalendarEvent.self,
+            Project.self
         ])
+        
         let config = ModelConfiguration(
             schema: schema,
             isStoredInMemoryOnly: false,
-            cloudKitDatabase: .none      // ← Temporary local-only mode
+            cloudKitDatabase: .none
         )
+        
         do {
             container = try ModelContainer(
                 for: schema,
-                migrationPlan: NotesMigrationPlan.self,
+                migrationPlan: NotesMigrationPlan.self,   // ← using the new simple plan
                 configurations: [config]
             )
-            print("✅ ModelContainer created successfully (local-only)")
+            print("✅ ModelContainer created successfully (local-only, simplified plan)")
         } catch {
             fatalError("❌ Failed to create ModelContainer: \(error)")
         }
+        
         DataSeeder.seed(in: container.mainContext)
     }
     // MARK: - Scene
@@ -79,6 +82,14 @@ struct _74App: App {
         .modelContainer(container)
         .environment(themeManager)
         .commands { InspectorCommands() }
+        
+#if os(macOS)
+        // Native macOS Settings window (Cmd + ,)
+        Settings {
+            SettingsView()
+        }
+#endif
+        
 #if os(macOS)
         MenuBarExtra("IndieGrind", systemImage: "note.text") {
             QuickCaptureView()
@@ -98,15 +109,18 @@ enum DataSeeder {
     private static func seedFolders(in context: ModelContext) {
         let descriptor = FetchDescriptor<Folder>()
         let existing   = (try? context.fetch(descriptor)) ?? []
-        let required: [(name: String, color: String?)] = [
-            ("Inbox",        nil),
-            ("Professional", "blue"),
-            ("Personal",     "green"),
-            ("Junk Drawer",  "orange")
+        
+        let required: [(name: String, color: String?, order: Int)] = [
+            ("Inbox",        nil, 0),
+            ("Professional", "blue", 1),
+            ("Personal",     "green", 2),
+            ("Junk Drawer",  "orange", 3)
         ]
+        
         var didInsert = false
         for folder in required where !existing.contains(where: { $0.name == folder.name }) {
-            context.insert(Folder(name: folder.name, colorName: folder.color))
+            let newFolder = Folder(name: folder.name, colorName: folder.color, order: folder.order)
+            context.insert(newFolder)
             didInsert = true
         }
         if didInsert { try? context.save() }

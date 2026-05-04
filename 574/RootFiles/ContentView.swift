@@ -15,9 +15,10 @@ struct ContentView: View {
     @Environment(\.modelContext)  private var modelContext
     @Environment(ThemeManager.self) private var themeManager
     // MARK: - State
-    @State private var selectedFolder: Folder?
-    @State private var selectedNote: Note?
-    @State private var showTrash: Bool = false          // Phase B
+    @State private var selectedFolder:  Folder?
+    @State private var selectedNote:    Note?
+    @State private var selectedProject: Project?
+    @State private var showTrash: Bool = false
     @State private var columnVisibility: NavigationSplitViewVisibility = .all
     // MARK: - Body
     var body: some View {
@@ -34,14 +35,14 @@ struct ContentView: View {
 #if os(macOS)
     private var macLayout: some View {
         NavigationSplitView(columnVisibility: $columnVisibility) {
-            FolderView(selectedFolder: $selectedFolder, showTrash: $showTrash)
+            FolderView(selectedFolder: $selectedFolder, showTrash: $showTrash, selectedProject: $selectedProject)
                 .navigationSplitViewColumnWidth(min: 180, ideal: 220, max: 280)
         } content: {
             if showTrash {
                 TrashView(selectedNote: $selectedNote)
                     .navigationSplitViewColumnWidth(min: 240, ideal: 280, max: 360)
             } else {
-                NoteListView(selectedFolder: selectedFolder, selectedNote: $selectedNote)
+                NoteListView(selectedFolder: selectedFolder, filterProject: selectedProject, selectedNote: $selectedNote)
                     .navigationSplitViewColumnWidth(min: 240, ideal: 280, max: 360)
             }
         } detail: {
@@ -55,10 +56,13 @@ struct ContentView: View {
         .navigationSplitViewStyle(.balanced)
         .onContinueUserActivity(CSSearchableItemActivityIdentifier, perform: openFromSpotlight)
         .onChange(of: selectedFolder) { _, newValue in
-            if newValue != nil { showTrash = false }
+            if newValue != nil { showTrash = false; selectedProject = nil }
         }
         .onChange(of: showTrash) { _, newValue in
-            if newValue { selectedFolder = nil }
+            if newValue { selectedFolder = nil; selectedProject = nil }
+        }
+        .onChange(of: selectedProject) { _, newValue in
+            if newValue != nil { selectedFolder = nil; showTrash = false }
         }
     }
 #endif
@@ -67,12 +71,12 @@ struct ContentView: View {
 #if os(iOS)
     private var iOSLayout: some View {
         NavigationSplitView(columnVisibility: $columnVisibility) {
-            FolderView(selectedFolder: $selectedFolder, showTrash: $showTrash)
+            FolderView(selectedFolder: $selectedFolder, showTrash: $showTrash, selectedProject: $selectedProject)
         } content: {
             if showTrash {
                 TrashView(selectedNote: $selectedNote)
             } else {
-                NoteListView(selectedFolder: selectedFolder, selectedNote: $selectedNote)
+                NoteListView(selectedFolder: selectedFolder, filterProject: selectedProject, selectedNote: $selectedNote)
             }
         } detail: {
             if let note = selectedNote {
@@ -84,10 +88,13 @@ struct ContentView: View {
         }
         .onContinueUserActivity(CSSearchableItemActivityIdentifier, perform: openFromSpotlight)
         .onChange(of: selectedFolder) { _, newValue in
-            if newValue != nil { showTrash = false }
+            if newValue != nil { showTrash = false; selectedProject = nil }
         }
         .onChange(of: showTrash) { _, newValue in
-            if newValue { selectedFolder = nil }
+            if newValue { selectedFolder = nil; selectedProject = nil }
+        }
+        .onChange(of: selectedProject) { _, newValue in
+            if newValue != nil { selectedFolder = nil; showTrash = false }
         }
     }
 #endif
@@ -109,13 +116,14 @@ struct ContentView: View {
         else { return }
         let descriptor = FetchDescriptor<Note>(predicate: #Predicate { $0.id == uuid && $0.deletedAt == nil })
         guard let note = try? modelContext.fetch(descriptor).first else { return }
-        selectedFolder = note.folder
-        selectedNote   = note
-        showTrash      = false
+        selectedFolder  = note.folder
+        selectedProject = nil
+        selectedNote    = note
+        showTrash       = false
     }
 }
 // MARK: - Preview
 #Preview {
     ContentView()
-        .modelContainer(for: [Note.self, Folder.self, Tag.self], inMemory: true)
+        .modelContainer(for: [Note.self, Folder.self, Tag.self, Project.self], inMemory: true)
 }

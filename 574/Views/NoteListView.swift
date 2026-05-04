@@ -35,6 +35,9 @@ struct NoteListView: View {
     /// The folder whose notes should be displayed.  `nil` shows all notes.
     let selectedFolder: Folder?
 
+    /// When non-nil, shows only notes belonging to this project.
+    var filterProject: Project? = nil
+
     /// The currently selected note, shared with ``ContentView`` and ``NoteDetailView``.
     @Binding var selectedNote: Note?
 
@@ -44,20 +47,22 @@ struct NoteListView: View {
 
     // MARK: - Computed
 
-    /// Notes filtered to match the selected folder and current search query,
+    /// Notes filtered by project/folder and current search query,
     /// sorted by modification date descending.
     private var notes: [Note] {
-        let folderFiltered: [Note]
-        if let folder = selectedFolder {
-            folderFiltered = allNotes.filter { $0.folder?.id == folder.id }
+        let base: [Note]
+        if let project = filterProject {
+            base = allNotes.filter { $0.project?.id == project.id }
+        } else if let folder = selectedFolder {
+            base = allNotes.filter { $0.folder?.id == folder.id }
         } else {
-            folderFiltered = allNotes
+            base = allNotes
         }
 
         let trimmed = searchQuery.trimmingCharacters(in: .whitespaces)
-        guard !trimmed.isEmpty else { return folderFiltered }
+        guard !trimmed.isEmpty else { return base }
         let lower = trimmed.lowercased()
-        return folderFiltered.filter {
+        return base.filter {
             $0.title.lowercased().contains(lower) ||
             $0.attributedContent.string.lowercased().contains(lower)
         }
@@ -84,7 +89,7 @@ struct NoteListView: View {
         .listStyle(.plain)
         .scrollContentBackground(.hidden)
         .background(themeManager.current.palette.listBackground.ignoresSafeArea())
-        .navigationTitle(selectedFolder?.name ?? "All Notes")
+        .navigationTitle(filterProject?.name ?? selectedFolder?.name ?? "All Notes")
         .searchable(text: $searchQuery, prompt: "Search notes…")
         .toolbar { toolbarContent }
         .overlay { emptyState }
@@ -136,11 +141,12 @@ struct NoteListView: View {
 
     // MARK: - Actions
 
-    /// Creates a new note and selects it, placing it in the best available folder.
+    /// Creates a new note and selects it, placing it in the best available folder
+    /// and assigning it to the current project if one is active.
     private func createNewNote() {
         let inbox  = folders.first { $0.name == "Inbox" }
         let target = selectedFolder ?? inbox ?? junkDrawer
-        let note   = Note(title: "", folder: target)
+        let note   = Note(title: "", folder: target, project: filterProject)
         modelContext.insert(note)
         try? modelContext.save()
         selectedNote = note

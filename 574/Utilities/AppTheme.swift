@@ -21,6 +21,10 @@ struct ThemePalette {
     let accent:            Color
     let separator:         Color
     let isDark:            Bool
+
+    /// Derived muted text — 60 % opacity of secondaryText.
+    /// Use wherever `.tertiary` would normally appear.
+    var tertiaryText: Color { secondaryText.opacity(0.6) }
 }
 
 // MARK: - Themes

@@ -53,6 +53,10 @@ final class Note {
     @Relationship(deleteRule: .nullify)
     var folder: Folder?
 
+    /// The project this note belongs to, if any.
+    @Relationship(deleteRule: .nullify)
+    var project: Project?
+
     var tags: [Tag] = []
     var attachments: [Attachment] = []
 
@@ -67,7 +71,8 @@ final class Note {
     init(
         title: String = "New Note",
         contentData: Data? = nil,
-        folder: Folder? = nil
+        folder: Folder? = nil,
+        project: Project? = nil
     ) {
         self.id = UUID()
         self.title = title
@@ -75,6 +80,7 @@ final class Note {
         self.createdAt = Date()
         self.modifiedAt = Date()
         self.folder = folder
+        self.project = project
     }
 
     // MARK: Computed — Rich Text

@@ -21,28 +21,23 @@ import SwiftUI
 /// - Important: Do not delete the "Junk Drawer" or "Inbox" system folders.
 @Model
 final class Folder {
-    
-    // MARK: Stored Properties
-    
     var id: UUID
     var name: String
     var createdAt: Date
-    
-    /// A colour token string (`"blue"`, `"red"`, etc.) used for the sidebar icon tint.
-    /// `nil` means the default accent colour is used.
     var colorName: String?
     
-    /// Notes contained in this folder.  Deleting the folder cascades to its notes.
+    // NEW - for reordering
+    var order: Int = 0
+    
     @Relationship(deleteRule: .cascade, inverse: \Note.folder)
     var notes: [Note]
     
-    // MARK: Init
-    
-    init(name: String, colorName: String? = nil) {
+    init(name: String, colorName: String? = nil, order: Int = 0) {
         self.id = UUID()
         self.name = name
         self.createdAt = Date()
         self.colorName = colorName
+        self.order = order
         self.notes = []
     }
     
