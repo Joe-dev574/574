@@ -1,8 +1,3 @@
-//
-//  DevLabel.swift
-//  574
-//
-
 import Foundation
 import SwiftData
 
@@ -13,7 +8,7 @@ final class DevLabel {
     var colorName: String?
     var createdAt: Date
 
-    @Relationship(inverse: \DevIssue.labels) var issues: [DevIssue] = []
+    @Relationship var issues: [DevIssue] = []
 
     init(name: String, colorName: String? = nil) {
         self.id = UUID()

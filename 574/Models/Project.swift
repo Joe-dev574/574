@@ -21,6 +21,10 @@ final class Project {
     @Relationship(deleteRule: .nullify, inverse: \Note.project)
     var notes: [Note] = []
 
+    // Developer Module
+    @Relationship(inverse: \DevIssue.project)
+    var devIssues: [DevIssue] = []
+
     init(name: String, colorName: String? = nil, iconData: Data? = nil, order: Int = 0) {
         self.id = UUID()
         self.name = name
@@ -53,10 +57,5 @@ extension Project {
         set { /* TODO: persist custom states in Phase 2 */ }
     }
 
-    /// All DevIssues belonging to this project.
-    var devIssues: [DevIssue] {
-        // This will be populated via @Relationship once we add it to DevIssue
-        // For now we query in views. Can be made a real relationship in next pass.
-        []
     }
-}
+

@@ -27,8 +27,7 @@ final class Attachment {
 
     var createdAt: Date
 
-    /// The note that owns this attachment.
-    @Relationship(deleteRule: .nullify)
+    @Relationship(deleteRule: .nullify, inverse: \Note.attachments)
     var note: Note?
 
     // MARK: Init

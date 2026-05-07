@@ -49,15 +49,16 @@ final class Note {
 
     // MARK: Relationships
 
-    /// The folder that contains this note.  `nil` means the note is unfiled.
+    // Relationships section (updated)
     @Relationship(deleteRule: .nullify)
     var folder: Folder?
 
-    /// The project this note belongs to, if any.
     @Relationship(deleteRule: .nullify)
     var project: Project?
 
+    @Relationship(inverse: \Tag.notes)
     var tags: [Tag] = []
+
     var attachments: [Attachment] = []
 
     @Relationship(deleteRule: .cascade)
@@ -65,6 +66,10 @@ final class Note {
 
     @Relationship(deleteRule: .cascade)
     var linkedCalendarEvents: [LinkedCalendarEvent] = []
+
+    // Developer Module
+    @Relationship(inverse: \DevIssue.linkedNote)
+    var devIssues: [DevIssue] = []
 
     // MARK: Init
 

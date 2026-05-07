@@ -28,6 +28,7 @@ final class LinkedReminder {
     var createdAt: Date
     
     /// The note that owns this reminder link.
+    @Relationship(deleteRule: .nullify, inverse: \Note.linkedReminders)
     var note: Note?
     
     // MARK: Init
