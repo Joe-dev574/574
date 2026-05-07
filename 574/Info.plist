@@ -6,5 +6,9 @@
 	<string></string>
 	<key>CFBundleSignature</key>
 	<string></string>
+	<key>NSCalendarsFullAccessUsageDescription</key>
+	<string>574 uses Calendar access to create and sync events linked to your notes.</string>
+	<key>NSRemindersFullAccessUsageDescription</key>
+	<string>574 uses Reminders access to create and sync reminders linked to your notes.</string>
 </dict>
 </plist>

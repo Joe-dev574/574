@@ -42,3 +42,21 @@ final class Project {
         }
     }
 }
+// MARK: - Developer Module Extension (Milestone 1)
+
+extension Project {
+
+    /// Linear-style workflow states for this project.
+    /// Default states match Linear. Can be customized per project later.
+    var devStates: [String] {
+        get { ["Backlog", "Todo", "In Progress", "In Review", "Done"] }
+        set { /* TODO: persist custom states in Phase 2 */ }
+    }
+
+    /// All DevIssues belonging to this project.
+    var devIssues: [DevIssue] {
+        // This will be populated via @Relationship once we add it to DevIssue
+        // For now we query in views. Can be made a real relationship in next pass.
+        []
+    }
+}

@@ -20,18 +20,9 @@ import Foundation
 // MARK: - Shared Container Helper
 
 /// Creates a ModelContainer pointing to the same on-disk store used by the app.
-/// CloudKit sync is disabled here — the app handles that when it runs normally.
+/// App Intents should use the same schema and store configuration as the main app.
 private func makeContainer() throws -> ModelContainer {
-    let schema = Schema([
-        Note.self, Folder.self, Tag.self,
-        Attachment.self, LinkedReminder.self, LinkedCalendarEvent.self
-    ])
-    let config = ModelConfiguration(
-        schema: schema,
-        isStoredInMemoryOnly: false,
-        cloudKitDatabase: .none
-    )
-    return try ModelContainer(for: schema, configurations: [config])
+    try NotesPersistence.makeContainer()
 }
 
 // MARK: - 1. Create Note

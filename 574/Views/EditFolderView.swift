@@ -4,63 +4,118 @@
 //
 //  Created by Joseph DeWeese on 5/3/26.
 //
+
 import SwiftUI
 import SwiftData
 
-/// A modal sheet for editing the name and accent colour of an existing ``Folder``.
-///
-/// Presented from ``FolderView`` via a context-menu "Rename…" or "Change Color…" action.
-/// Changes are committed to the model context on Save and discarded on Cancel.
 struct EditFolderView: View {
 
-    // MARK: - Properties
-
-    /// The folder being edited.  Uses `@Bindable` so the text field binds directly
-    /// to the `name` property and the colour picker binds to `colorName`.
     @Bindable var folder: Folder
+    @Environment(\.dismiss)         private var dismiss
+    @Environment(\.modelContext)    private var modelContext
+    @Environment(ThemeManager.self) private var themeManager
+    @FocusState private var nameFocused: Bool
 
-    // MARK: - Environment
+    private var palette: ThemePalette { themeManager.current.palette }
 
-    @Environment(\.dismiss) private var dismiss
-    @Environment(\.modelContext) private var modelContext
+    private var resolvedColor: Color {
+        switch folder.colorName {
+        case "blue":   return .blue
+        case "red":    return .red
+        case "green":  return .green
+        case "orange": return .orange
+        case "purple": return .purple
+        case "yellow": return .yellow
+        default:       return .accentColor
+        }
+    }
 
-    // MARK: - Body
+    private var isValid: Bool {
+        !folder.name.trimmingCharacters(in: .whitespaces).isEmpty
+    }
 
     var body: some View {
-        NavigationStack {
-            Form {
-                Section("Name") {
-                    TextField("Folder name", text: $folder.name)
-                        .textFieldStyle(.roundedBorder)
-                        .accessibilityLabel("Folder name")
-                }
+        VStack(spacing: 0) {
 
-                Section("Accent Colour") {
-                    FolderColorPicker(colorName: $folder.colorName)
-                        .accessibilityLabel("Choose folder colour")
+            // Header
+            HStack {
+                Button("Cancel") { dismiss() }
+                    .keyboardShortcut(.cancelAction)
+                    .foregroundStyle(palette.secondaryText)
+                Spacer()
+                Text("Edit Folder")
+                    .font(.headline)
+                    .foregroundStyle(palette.primaryText)
+                Spacer()
+                Button("Save") {
+                    try? modelContext.save()
+                    dismiss()
                 }
+                .fontWeight(.semibold)
+                .disabled(!isValid)
+                .keyboardShortcut(.defaultAction)
             }
-            .navigationTitle("Edit Folder")
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
-                        .keyboardShortcut(.cancelAction)
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") {
-                        try? modelContext.save()
-                        dismiss()
+            .padding(.horizontal, 20)
+            .padding(.top, 16)
+            .padding(.bottom, 12)
+
+            Divider().opacity(0.5)
+
+            // Live folder icon preview
+            ZStack {
+                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    .fill(resolvedColor.opacity(0.15))
+                    .frame(width: 84, height: 84)
+                Image(systemName: "folder.fill")
+                    .font(.system(size: 42, weight: .medium))
+                    .foregroundStyle(resolvedColor)
+            }
+            .padding(.top, 28)
+            .padding(.bottom, 28)
+            .animation(.spring(response: 0.3, dampingFraction: 0.7), value: folder.colorName)
+
+            // Name field
+            VStack(alignment: .leading, spacing: 8) {
+                Text("NAME")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(palette.secondaryText)
+                    .padding(.horizontal, 20)
+
+                TextField("Folder name…", text: $folder.name)
+                    .textFieldStyle(.plain)
+                    .font(.body)
+                    .focused($nameFocused)
+                    .foregroundStyle(palette.primaryText)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 11)
+                    .background(
+                        RoundedRectangle(cornerRadius: 10, style: .continuous)
+                            .fill(palette.primaryText.opacity(0.07))
+                    )
+                    .padding(.horizontal, 20)
+                    .onSubmit {
+                        if isValid { try? modelContext.save(); dismiss() }
                     }
-                    .disabled(folder.name.trimmingCharacters(in: .whitespaces).isEmpty)
-                    .keyboardShortcut(.defaultAction)
-                }
             }
+
+            // Colour picker
+            VStack(alignment: .leading, spacing: 10) {
+                Text("COLOR")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(palette.secondaryText)
+                    .padding(.horizontal, 20)
+
+                FolderColorPicker(colorName: $folder.colorName)
+                    .padding(.horizontal, 8)
+            }
+            .padding(.top, 22)
+
+            Spacer(minLength: 20)
         }
-        .frame(minWidth: 340, minHeight: 260)
+        .background(palette.listBackground.ignoresSafeArea())
+        .frame(minWidth: 340, minHeight: 340)
     }
 }
-
-// MARK: - Preview
 
 #Preview {
     EditFolderView(folder: Folder(name: "Work", colorName: "blue"))

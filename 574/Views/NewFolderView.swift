@@ -10,19 +10,15 @@ import SwiftData
 
 struct NewFolderView: View {
 
-    // MARK: - Environment
-
-    @Environment(\.dismiss)      private var dismiss
-    @Environment(\.modelContext) private var modelContext
+    @Environment(\.dismiss)         private var dismiss
+    @Environment(\.modelContext)    private var modelContext
     @Environment(ThemeManager.self) private var themeManager
-
-    // MARK: - State
 
     @State private var name: String = ""
     @State private var colorName: String? = nil
     @FocusState private var nameFocused: Bool
 
-    // MARK: - Computed
+    private var palette: ThemePalette { themeManager.current.palette }
 
     private var resolvedColor: Color {
         switch colorName {
@@ -40,19 +36,18 @@ struct NewFolderView: View {
         !name.trimmingCharacters(in: .whitespaces).isEmpty
     }
 
-    // MARK: - Body
-
     var body: some View {
         VStack(spacing: 0) {
 
-            // Header bar
+            // Header
             HStack {
                 Button("Cancel") { dismiss() }
                     .keyboardShortcut(.cancelAction)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(palette.secondaryText)
                 Spacer()
                 Text("New Folder")
                     .font(.headline)
+                    .foregroundStyle(palette.primaryText)
                 Spacer()
                 Button("Create") { createFolder() }
                     .fontWeight(.semibold)
@@ -82,18 +77,19 @@ struct NewFolderView: View {
             VStack(alignment: .leading, spacing: 8) {
                 Text("NAME")
                     .font(.caption.weight(.semibold))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(palette.secondaryText)
                     .padding(.horizontal, 20)
 
                 TextField("Folder name…", text: $name)
                     .textFieldStyle(.plain)
                     .font(.body)
                     .focused($nameFocused)
+                    .foregroundStyle(palette.primaryText)
                     .padding(.horizontal, 14)
                     .padding(.vertical, 11)
                     .background(
                         RoundedRectangle(cornerRadius: 10, style: .continuous)
-                            .fill(Color.primary.opacity(0.07))
+                            .fill(palette.primaryText.opacity(0.07))
                     )
                     .padding(.horizontal, 20)
                     .onSubmit { if isValid { createFolder() } }
@@ -103,7 +99,7 @@ struct NewFolderView: View {
             VStack(alignment: .leading, spacing: 10) {
                 Text("COLOR")
                     .font(.caption.weight(.semibold))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(palette.secondaryText)
                     .padding(.horizontal, 20)
 
                 FolderColorPicker(colorName: $colorName)
@@ -113,12 +109,10 @@ struct NewFolderView: View {
 
             Spacer(minLength: 20)
         }
-        .background(themeManager.current.palette.listBackground.ignoresSafeArea())
+        .background(palette.listBackground.ignoresSafeArea())
         .onAppear { nameFocused = true }
         .frame(minWidth: 340, minHeight: 340)
     }
-
-    // MARK: - Action
 
     private func createFolder() {
         let trimmed = name.trimmingCharacters(in: .whitespaces)
@@ -129,8 +123,6 @@ struct NewFolderView: View {
         dismiss()
     }
 }
-
-// MARK: - Preview
 
 #Preview {
     NewFolderView()

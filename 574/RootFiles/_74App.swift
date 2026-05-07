@@ -17,8 +17,8 @@ import SwiftData
 
 // MARK: - Schema Versions (simplified for now — only current version)
 
-enum NoteSchemaCurrent: VersionedSchema {
-    static var versionIdentifier = Schema.Version(3, 0, 0)
+enum NoteSchemaV1: VersionedSchema {
+    static var versionIdentifier = Schema.Version(1, 0, 0)
     static var models: [any PersistentModel.Type] {
         [
             Note.self,
@@ -33,7 +33,7 @@ enum NoteSchemaCurrent: VersionedSchema {
 }
 
 enum NotesMigrationPlan: SchemaMigrationPlan {
-    static var schemas: [any VersionedSchema.Type] { [NoteSchemaCurrent.self] }
+    static var schemas: [any VersionedSchema.Type] { [NoteSchemaV1.self] }
     static var stages: [MigrationStage] { [] }   // No stages = no duplicates
 }
 
@@ -45,29 +45,9 @@ struct _74App: App {
     let themeManager = ThemeManager()
     // MARK: - Init
     init() {
-        let schema = Schema([
-            Note.self,
-            Folder.self,
-            Tag.self,
-            Attachment.self,
-            LinkedReminder.self,
-            LinkedCalendarEvent.self,
-            Project.self
-        ])
-        
-        let config = ModelConfiguration(
-            schema: schema,
-            isStoredInMemoryOnly: false,
-            cloudKitDatabase: .none
-        )
-        
         do {
-            container = try ModelContainer(
-                for: schema,
-                migrationPlan: NotesMigrationPlan.self,   // ← using the new simple plan
-                configurations: [config]
-            )
-            print("✅ ModelContainer created successfully (local-only, simplified plan)")
+            container = try NotesPersistence.makeContainer()
+            print("✅ ModelContainer created successfully")
         } catch {
             fatalError("❌ Failed to create ModelContainer: \(error)")
         }

@@ -15,7 +15,7 @@ struct FolderView: View {
     @Environment(\.modelContext)    private var modelContext
     @Environment(ThemeManager.self) private var themeManager
 
-    @Query(sort: \Folder.order) private var folders: [Folder]
+    @Query(sort: \Folder.order)  private var folders: [Folder]
     @Query(sort: \Project.order) private var projects: [Project]
     @Query(filter: #Predicate<Note> { $0.deletedAt != nil }) private var trashedNotes: [Note]
 
@@ -30,20 +30,19 @@ struct FolderView: View {
     @State private var folderToEdit: Folder?
     @State private var showingThemePicker = false
     @State private var showingSettings = false
-
-    // Profile hero
     @State private var profileImage: Image? = Image(systemName: "person.circle.fill")
+
+    // MARK: - Palette shortcut
+    private var palette: ThemePalette { themeManager.current.palette }
 
     // MARK: - Body
     var body: some View {
         List(selection: $selectedFolder) {
 
-            // MARK: - Custom Header: Profile Hero + Gear
+            // Profile hero header
             Section {
                 HStack {
-                    Button {
-                        showingSettings = true
-                    } label: {
+                    Button { showingSettings = true } label: {
                         profileImage?
                             .resizable()
                             .scaledToFill()
@@ -51,7 +50,6 @@ struct FolderView: View {
                             .clipShape(Circle())
                     }
                     .buttonStyle(.plain)
-
                     Spacer()
                 }
                 .padding(.horizontal, 8)
@@ -60,7 +58,7 @@ struct FolderView: View {
             .listRowBackground(Color.clear)
             .listRowInsets(EdgeInsets())
 
-            // MARK: Folders (reorderable)
+            // MARK: Folders
             Section("Folders") {
                 ForEach(folders) { folder in
                     NavigationLink(value: folder) {
@@ -74,7 +72,7 @@ struct FolderView: View {
                 }
             }
 
-            // MARK: Projects — Big Gray Rectangle Card + reorderable rows
+            // MARK: Projects
             Section("Projects") {
                 Button {
                     showingNewProjectSheet = true
@@ -82,14 +80,14 @@ struct FolderView: View {
                     HStack {
                         Image(systemName: "plus.circle.fill")
                             .font(.title2)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(palette.secondaryText)
                         Text("New Project")
                             .font(.headline)
-                            .foregroundStyle(.primary)
+                            .foregroundStyle(palette.primaryText)
                         Spacer()
                     }
                     .padding()
-                    .background(Color.gray.opacity(0.12))
+                    .background(palette.primaryText.opacity(0.06))
                     .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                 }
                 .buttonStyle(.plain)
@@ -104,7 +102,11 @@ struct FolderView: View {
                         projectRow(project)
                     }
                     .buttonStyle(.plain)
-                    .listRowBackground(selectedProject?.id == project.id ? Color.accentColor.opacity(0.18) : Color.clear)
+                    .listRowBackground(
+                        selectedProject?.id == project.id
+                            ? Color.accentColor.opacity(0.18)
+                            : Color.clear
+                    )
                     .contextMenu { projectContextMenu(for: project) }
                 }
                 .onMove { source, destination in
@@ -130,12 +132,12 @@ struct FolderView: View {
                         }
                         Text("Trash")
                             .font(.system(.body, weight: .medium))
-                            .foregroundStyle(.primary)
+                            .foregroundStyle(palette.primaryText)
                         Spacer(minLength: 0)
                         if !trashedNotes.isEmpty {
                             Text("\(trashedNotes.count)")
                                 .font(.caption2.weight(.medium))
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(palette.secondaryText)
                         }
                     }
                     .padding(.vertical, 3)
@@ -146,15 +148,14 @@ struct FolderView: View {
         }
         .listStyle(.sidebar)
         .scrollContentBackground(.hidden)
-        .background(themeManager.current.palette.sidebarBackground.ignoresSafeArea())
+        .background(palette.sidebarBackground.ignoresSafeArea())
         .navigationTitle("Folders")
         .toolbar { toolbarContent }
         .sheet(isPresented: $showingNewFolderSheet)  { NewFolderView() }
         .sheet(isPresented: $showingNewProjectSheet) { NewProjectView() }
         .sheet(item: $folderToEdit) { folder in EditFolderView(folder: folder) }
         .sheet(isPresented: $showingThemePicker) {
-            ThemePickerView()
-                .environment(themeManager)
+            ThemePickerView().environment(themeManager)
         }
         .sheet(isPresented: $showingSettings) {
             SettingsView()
@@ -168,6 +169,7 @@ struct FolderView: View {
     }
 
     // MARK: - Row Views
+
     private func folderRow(_ folder: Folder) -> some View {
         let noteCount = folder.notes.filter { $0.deletedAt == nil }.count
         return HStack(spacing: 12) {
@@ -181,12 +183,12 @@ struct FolderView: View {
             }
             Text(folder.name)
                 .font(.system(.body, weight: .medium))
-                .foregroundStyle(.primary)
+                .foregroundStyle(palette.primaryText)
             Spacer(minLength: 0)
             if noteCount > 0 {
                 Text("\(noteCount)")
                     .font(.caption2.weight(.medium))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(palette.secondaryText)
             }
         }
         .padding(.vertical, 3)
@@ -198,16 +200,18 @@ struct FolderView: View {
             ProjectIconView(project: project, size: 34)
             Text(project.name)
                 .font(.system(.body, weight: .medium))
-                .foregroundStyle(.primary)
+                .foregroundStyle(palette.primaryText)
             Spacer(minLength: 0)
             if noteCount > 0 {
                 Text("\(noteCount)")
                     .font(.caption2.weight(.medium))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(palette.secondaryText)
             }
         }
         .padding(.vertical, 3)
     }
+
+    // MARK: - Toolbar
 
     @ToolbarContentBuilder
     private var toolbarContent: some ToolbarContent {
@@ -219,24 +223,23 @@ struct FolderView: View {
             .accessibilityLabel("New Folder")
             .keyboardShortcut("n", modifiers: [.command, .shift])
         }
-        
         ToolbarItem(placement: .automatic) {
             Button { showingThemePicker = true } label: {
                 Image(systemName: "paintpalette")
-                    .foregroundStyle(themeManager.current.palette.accent)
+                    .foregroundStyle(palette.accent)
             }
             .help("Workspace Theme")
         }
-        // Gear (Settings) — now right next to it
         ToolbarItem(placement: .automatic) {
-                    Button { showingSettings = true } label: {
-                        Image(systemName: "gear")
-                    }
-                    .help("Settings")
+            Button { showingSettings = true } label: {
+                Image(systemName: "gear")
             }
+            .help("Settings")
         }
-    
+    }
+
     // MARK: - Context Menus
+
     @ViewBuilder
     private func folderContextMenu(for folder: Folder) -> some View {
         if folder.name != "Junk Drawer" {
@@ -252,22 +255,20 @@ struct FolderView: View {
         Button("Delete", role: .destructive) { deleteProject(project) }
     }
 
-    // MARK: - Reordering Helper
-    private func reorder<T: PersistentModel & Identifiable>(items: [T], from source: IndexSet, to destination: Int) {
+    // MARK: - Reorder / Delete
+
+    private func reorder<T: PersistentModel & Identifiable>(
+        items: [T], from source: IndexSet, to destination: Int
+    ) {
         var reordered = items
         reordered.move(fromOffsets: source, toOffset: destination)
-        
         for (index, item) in reordered.enumerated() {
-            if let folder = item as? Folder {
-                folder.order = index
-            } else if let project = item as? Project {
-                project.order = index
-            }
+            if let f = item as? Folder  { f.order = index }
+            else if let p = item as? Project { p.order = index }
         }
         try? modelContext.save()
     }
 
-    // MARK: - Delete Helpers
     private func deleteFolder(_ folder: Folder) {
         guard folder.name != "Junk Drawer" else { return }
         if selectedFolder?.id == folder.id { selectedFolder = nil }
@@ -283,6 +284,7 @@ struct FolderView: View {
 }
 
 // MARK: - Preview
+
 #Preview {
     FolderView(
         selectedFolder:  .constant(nil),

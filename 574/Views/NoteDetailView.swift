@@ -37,8 +37,9 @@ struct NoteDetailView: View {
     @Environment(ThemeManager.self) private var themeManager
 
     // MARK: - Queries
-
+    
     @Query(sort: \Folder.createdAt) private var folders: [Folder]
+    @Query(sort: \Tag.name) private var existingTags: [Tag]
 
     // MARK: - State
 
@@ -215,8 +216,23 @@ struct NoteDetailView: View {
     private func addTag() {
         let trimmed = newTagName.trimmingCharacters(in: .whitespaces)
         guard !trimmed.isEmpty else { return }
-        let tag = Tag(name: trimmed)
-        modelContext.insert(tag)
+
+        let normalized = trimmed.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)
+        guard !note.tags.contains(where: {
+            $0.name.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current) == normalized
+        }) else {
+            newTagName = ""
+            return
+        }
+
+        let tag = existingTags.first(where: {
+            $0.name.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current) == normalized
+        }) ?? {
+            let tag = Tag(name: trimmed)
+            modelContext.insert(tag)
+            return tag
+        }()
+
         note.tags.append(tag)
         save()
         newTagName = ""
